@@ -1,0 +1,62 @@
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>DigitAI | Reconhecimento de Dígitos</title>
+
+    <link rel="stylesheet" href="{% static 'digitai/css/style.css' %}">
+    <script src="{% static 'digitai/js/script.js' %}" defer></script>
+</head>
+
+<body>
+
+    <header>
+        <div class="logo">Digit<span>AI</span></div>
+    </header>
+
+    <main>
+
+        <section class="hero">
+            <h1>Reconhecimento de <span>Dígitos</span></h1>
+            <p>Desenhe um número e deixe a inteligência artificial reconhecê-lo.</p>
+        </section>
+
+        <section class="drawing-card">
+
+            <h2>Desenhe seu número</h2>
+            <p>Utilize o mouse ou o dedo para desenhar um número de 0 a 9.</p>
+
+            <div class="canvas-container">
+                <canvas id="drawingCanvas" width="280" height="280"></canvas>
+            </div>
+
+            <div class="buttons">
+                <button id="clearButton" class="btn-secondary" type="button">
+                    Limpar
+                </button>
+
+                <button id="recognizeButton" class="btn-primary" type="button">
+                    Reconhecer
+                </button>
+            </div>
+
+                        <div class="result-card">
+                <h3>Resultado da previsão</h3>
+
+                <div class="result-digit" id="resultDigit">?</div>
+
+                <p class="result-confidence" id="resultConfidence">
+                    Aguardando um desenho...
+                </p>
+            </div>
+
+        </section>
+
+    </main>
+
+</body>
+</html>

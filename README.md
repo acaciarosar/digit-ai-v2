@@ -21,6 +21,7 @@ A aplicação foi construída com FastAPI e utiliza validação de dados com Pyd
 - Pydantic
 - Uvicorn
 - Joblib
+- Django 
 - Git e GitHub
 
 ## 3. Base de dados e treinamento
@@ -102,6 +103,22 @@ digit-ai-v2/
 ├── models/
 │   └── mlp_model.joblib
 │
+├── web/
+│   ├── config/
+│   ├── digitai/
+│   │   ├── migrations/
+│   │   ├── static/
+│   │   │   └── digitai/
+│   │   │       ├── css/
+│   │   │       └── js/
+│   │   ├── templates/
+│   │   │   └── digitai/
+│   │   ├── tests.py
+│   │   └── views.py
+│   ├── manage.py
+│   ├── requirements.txt
+│   └── README.md
+│
 ├── digitai_mnist.ipynb
 ├── schemas.py
 ├── services.py
@@ -114,7 +131,7 @@ digit-ai-v2/
 
 ### Responsabilidade dos módulos
 
-| Arquivo | Responsabilidade |
+| Arquivo/pasta | Responsabilidade |
 |---|---|
 | `digitai_mnist.ipynb` | Treinamento, comparação e avaliação dos modelos. |
 | `schemas.py` | Definição dos modelos Pydantic e validação dos dados de entrada e saída. |
@@ -124,6 +141,14 @@ digit-ai-v2/
 | `models/` | Armazenamento do modelo treinado. |
 | `assets/` | Armazenamento das imagens próprias utilizadas no desafio de classificação. |
 | `requirements.txt` | Registro das dependências e respectivas versões. |
+| `web/` | Organização da interface web desenvolvida com Django. |
+| `web/config/` | Configurações e roteamento do projeto Django. |
+| `web/digitai/views.py` | Tratamento das requisições da interface e comunicação com a API FastAPI. |
+| `web/digitai/templates/` | Armazenamento dos arquivos HTML da interface. |
+| `web/digitai/static/` | Armazenamento dos arquivos CSS e JavaScript da interface. |
+| `web/digitai/tests.py` | Testes automatizados da aplicação Django. |
+| `web/requirements.txt` | Dependências específicas da interface Django e referência às dependências principais. |
+| `web/README.md` | Instruções de instalação e execução da interface web. |
 
 ### 5.1. Gerenciamento do modelo
 
@@ -169,21 +194,40 @@ Ativar:
 
 ```bash
 python -m pip install -r requirements.txt
+python -m pip install -r web/requirements.txt
 ```
 
-### 6.5. Executar a aplicação
+### 6.5. Executar as aplicações
+
+O projeto utiliza dois serviços independentes, que devem ser iniciados em terminais separados.
+
+**Terminal 1 — API FastAPI**
 
 Na raiz do projeto, execute:
 
 ```bash
-uvicorn main:app --reload
+uvicorn main:app --reload --port 8001
 ```
 
 A API estará disponível em:
 
-```text
-http://127.0.0.1:8000
+`http://127.0.0.1:8001`
+
+**Terminal 2 — Interface web Django**
+
+Na raiz do projeto, abra outro terminal, mantenha o ambiente virtual ativado e execute:
+
+```bash
+python web/manage.py runserver
 ```
+
+A interface web estará disponível em:
+
+`http://127.0.0.1:8000`
+
+A interface Django realiza a comunicação com a API FastAPI para enviar os dados do desenho e apresentar o resultado do reconhecimento.
+
+Para mais informações sobre a execução da interface, consulte o arquivo `web/README.md`.
 
 ## 7. Endpoints disponíveis
 
@@ -194,6 +238,7 @@ A aplicação disponibiliza três endpoints:
 | GET | `/` | Retorna uma mensagem de funcionamento da API. |
 | GET | `/health` | Verifica a disponibilidade do serviço e do modelo carregado. |
 | POST | `/predict` | Recebe os pixels de uma imagem e retorna a classificação. |
+
 
 ### 7.1. GET /
 
@@ -223,38 +268,38 @@ Resposta quando o modelo está carregado:
 
 Caso o modelo não esteja disponível, a API retorna HTTP 503.
 
-### 7.3. POST /predict
+### 7.3. Exemplo de requisição
 
-Recebe um vetor contendo exatamente 784 valores numéricos, correspondentes aos pixels de uma imagem de 28 × 28.
+O endpoint `/predict` recebe uma requisição HTTP POST com um objeto JSON contendo uma lista de exatamente 784 valores numéricos, correspondentes aos pixels de uma imagem de 28 × 28. Os valores devem estar normalizados no intervalo entre 0 e 1.
 
-Os valores devem estar no intervalo de 0 a 1.
+Exemplo de estrutura válida da requisição:
 
-Exemplo de estrutura da requisição:
+```python
+import json
+import urllib.request
 
-```json
-{
-  "pixels": [
-    0.0,
-    0.0,
-    0.0
-  ]
+url = "http://127.0.0.1:8001/predict"
+
+dados = {
+    "pixels": [0.0] * 784
 }
+
+payload = json.dumps(dados).encode("utf-8")
+
+requisicao = urllib.request.Request(
+    url,
+    data=payload,
+    headers={"Content-Type": "application/json"},
+    method="POST"
+)
+
+with urllib.request.urlopen(requisicao) as resposta:
+    resultado = json.loads(resposta.read().decode("utf-8"))
+
+print(resultado)
 ```
 
-A lista completa deve conter exatamente 784 valores. O exemplo acima ilustra apenas o início do vetor.
-
-Resposta de exemplo obtida durante os testes:
-
-```json
-{
-  "digit": 5,
-  "confidence": 0.2958522140979767
-}
-```
-
-O campo `digit` representa a classe prevista, enquanto `confidence` representa a probabilidade atribuída pelo modelo à classe selecionada.
-
-Esse resultado foi obtido com um vetor de teste composto por 784 pixels zerados, utilizado para verificar o funcionamento da API. Portanto, não representa uma avaliação de reconhecimento de uma imagem manuscrita real.
+Nesse exemplo, é enviado um vetor com 784 valores iguais a zero, utilizado para demonstrar a estrutura da requisição. Ele não representa um dígito manuscrito.
 
 ### 7.4. Validação e códigos HTTP
 
@@ -282,17 +327,15 @@ O FastAPI disponibiliza automaticamente uma documentação interativa dos endpoi
 
 Após iniciar a aplicação, acesse:
 
-```text
-http://127.0.0.1:8000/docs
-```
+`http://127.0.0.1:8001/docs`
 
 Por meio dessa interface, é possível consultar os endpoints, enviar requisições e visualizar as respostas da API.
 
 ## 9. Vídeo de apresentação
 
-O vídeo de apresentação do projeto será disponibilizado no Google Drive.
+O vídeo de apresentação do projeto está disponível no Google Drive com o nome Digit-ai-v2
 
-**Link:** A inserir após a publicação do vídeo.
+**Link:** [Acessar vídeo de apresentação](https://drive.google.com/drive/folders/1oPZfFas8ZKg8X6KjENbVhinCdiILVrGU?usp=drive_link)
 
 ## 10. Considerações finais
 
@@ -300,9 +343,8 @@ O DigitAI integra conceitos de aprendizado de máquina, processamento de imagens
 
 O projeto permitiu comparar diferentes algoritmos de classificação, selecionar uma MLP com base nos resultados obtidos e disponibilizar o modelo treinado por meio de uma API modular.
 
-A implementação também contempla o carregamento do modelo em memória, a validação rigorosa das entradas e a disponibilização de endpoints para consulta e classificação de dígitos manuscritos.
+A implementação contempla o carregamento do modelo em memória, a validação rigorosa das entradas e a disponibilização de endpoints para consulta e classificação de dígitos manuscritos. Como extensão, foi desenvolvida uma interface web com Django, que permite ao usuário desenhar um dígito e encaminhar a imagem à API FastAPI para reconhecimento.
 
----
 
 **Projeto Final — Módulo 2**
 
